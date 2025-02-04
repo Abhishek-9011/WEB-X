@@ -4,6 +4,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
 import "leaflet-routing-machine";
+import MapMarker from "./Abhishek/MapMarker"; 
 
 // Fix for default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -36,13 +37,14 @@ const transportData = [
   { name: "Bus Stop D", location: [40.7484, -73.9857], type: "bus" },
 ];
 
-const MapComponent = ({ onTransportClick, selectedTransportLocation }) => {
+const MapComponent = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [accuracy, setAccuracy] = useState(null);
   const [closestTransport, setClosestTransport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isMapVisible, setIsMapVisible] = useState(true);
+  const [selectedTransport, setSelectedTransport] = useState(null); // New state
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -93,15 +95,18 @@ const MapComponent = ({ onTransportClick, selectedTransportLocation }) => {
   if (error) return <div className="text-center text-red-500 mt-5">{error}</div>;
 
   return (
-    <div className="flex flex-col items-center mt-5 min-h-screen">
+    <div className="relative flex flex-col items-center mt-5 min-h-screen">
+      {/* Toggle Map Visibility Button */}
       <button
         onClick={() => setIsMapVisible(!isMapVisible)}
         className="mb-3 px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600"
       >
         {isMapVisible ? "Hide Map" : "Show Map"}
       </button>
+
+      {/* Map Section */}
       {isMapVisible && userLocation && (
-        <div className="w-4/5 h-[60vh] rounded-lg overflow-hidden shadow-lg">
+        <div className="relative w-4/5 h-[60vh] rounded-lg overflow-hidden shadow-lg">
           <MapContainer center={userLocation} zoom={13} className="w-full h-full">
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -113,12 +118,14 @@ const MapComponent = ({ onTransportClick, selectedTransportLocation }) => {
                 {accuracy ? `${accuracy.toFixed(2)} meters` : "Calculating..."}
               </Popup>
             </Marker>
+
+            {/* Transport Locations */}
             {transportData.map((transport, index) => (
               <Marker
                 key={index}
                 position={transport.location}
                 eventHandlers={{
-                  click: () => onTransportClick(transport.location),
+                  click: () => setSelectedTransport(transport), // Update selected transport
                 }}
               >
                 <Popup>
@@ -127,22 +134,27 @@ const MapComponent = ({ onTransportClick, selectedTransportLocation }) => {
                 </Popup>
               </Marker>
             ))}
+
+            {/* Draw route to closest transport */}
             {closestTransport && (
-              <RoutingLine
-                start={userLocation}
-                end={closestTransport.location}
-              />
+              <RoutingLine start={userLocation} end={closestTransport.location} />
             )}
-            <RecenterAutomatically
-              location={selectedTransportLocation || userLocation}
-            />
+            <RecenterAutomatically location={userLocation} />
           </MapContainer>
+        </div>
+      )}
+
+      {/* Display `MapMarker` beside the map when a transport is selected */}
+      {selectedTransport && (
+        <div className="absolute top-10 right-10">
+          <MapMarker reviews={Math.floor(Math.random() * 100) + 1} location={selectedTransport.name} />
         </div>
       )}
     </div>
   );
 };
 
+// Component to draw route line
 const RoutingLine = ({ start, end }) => {
   const map = useMap();
   useEffect(() => {
@@ -160,6 +172,7 @@ const RoutingLine = ({ start, end }) => {
   return null;
 };
 
+// Component to recenter map automatically
 const RecenterAutomatically = ({ location }) => {
   const map = useMap();
   useEffect(() => {
