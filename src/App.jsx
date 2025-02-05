@@ -8,10 +8,11 @@ function App() {
   return (
     <BrowserRouter>
     <Navbar location={"Canada"} />
-    <MapSidebar/>
+    {/* <MapSidebar /> */}
       <Routes>
         <Route path="/map" element={<MapComponent />} />
         <Route path="/aa" element={<MapMarker imageSrc={"/museum.jpeg"} location={"Mathura Township"} reviews={150}/>} />
+        <Route path="/sidebar" element={<MapSidebar/>} />
       </Routes>
     </BrowserRouter>
   );

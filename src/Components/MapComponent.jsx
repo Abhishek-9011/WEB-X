@@ -1,186 +1,63 @@
-import React, { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
-import "leaflet-routing-machine";
-import MapMarker from "./Abhishek/MapMarker"; 
+// src/Map.js
+import React, { useState, useEffect } from "react";
+import ReactMapGL, { Marker } from "react-map-gl";
+import { v4 as uuidv4 } from "uuid";
+import citiesData from "../Data/citiesData";
+import MapMarker from "./Abhishek/MapMarker";
+import MapSidebar from "./Abhishek/MapSidebar";
 
-// Fix for default marker icons
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
-});
-
-// Haversine formula to calculate distance
-const haversineDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371; // Earth radius in km
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
-
-// Predefined data for metro stations and bus stops
-const transportData = [
-  { name: "Metro Station A", location: [40.7128, -74.006], type: "metro" },
-  { name: "Bus Stop B", location: [40.7306, -73.9352], type: "bus" },
-  { name: "Metro Station C", location: [40.7589, -73.9851], type: "metro" },
-  { name: "Bus Stop D", location: [40.7484, -73.9857], type: "bus" },
-];
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
 const MapComponent = () => {
-  const [userLocation, setUserLocation] = useState(null);
-  const [accuracy, setAccuracy] = useState(null);
-  const [closestTransport, setClosestTransport] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isMapVisible, setIsMapVisible] = useState(true);
-  const [selectedTransport, setSelectedTransport] = useState(null); // New state
-
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser");
-      return;
-    }
-
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        setUserLocation([latitude, longitude]);
-        setAccuracy(accuracy);
-      },
-      () => setError("Unable to retrieve your location"),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
-
-  useEffect(() => {
-    if (userLocation && transportData.length > 0) {
-      let closest = null;
-      let minDistance = Infinity;
-
-      for (const transport of transportData) {
-        const distance = haversineDistance(
-          userLocation[0],
-          userLocation[1],
-          transport.location[0],
-          transport.location[1]
-        );
-        if (distance < minDistance) {
-          minDistance = distance;
-          closest = transport;
-        }
-      }
-
-      setClosestTransport(closest);
-    }
-  }, [userLocation]);
-
-  useEffect(() => {
-    setLoading(false);
-  }, [userLocation]);
-
-  if (loading) return <div className="text-center mt-5">Loading...</div>;
-  if (error) return <div className="text-center text-red-500 mt-5">{error}</div>;
-
+  const [viewPort, setViewPort] = useState({
+    latitude: 27.4955539,
+    longitude: 77.6855554,
+    width: "100vw",
+    height: "100vh",
+    zoom: 10,
+  });
   return (
-    <div className="relative flex flex-col items-center mt-5 min-h-screen">
-      {/* Toggle Map Visibility Button */}
-      <button
-        onClick={() => setIsMapVisible(!isMapVisible)}
-        className="mb-3 px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600"
+    <div style={{ position: "relative", width: "100vw", height: "100vh" }}>
+      <div
+        style={{
+          position: "absolute",
+          // top: "80px", // Adjust based on Navbar height
+          // left: "20px",
+          width: "350px", // Adjust width as needed
+          zIndex: 10,
+        }}
       >
-        {isMapVisible ? "Hide Map" : "Show Map"}
-      </button>
-
-      {/* Map Section */}
-      {isMapVisible && userLocation && (
-        <div className="relative w-4/5 h-[60vh] rounded-lg overflow-hidden shadow-lg">
-          <MapContainer center={userLocation} zoom={13} className="w-full h-full">
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            />
-            <Marker position={userLocation}>
-              <Popup>
-                You are here! <br /> Accuracy:{" "}
-                {accuracy ? `${accuracy.toFixed(2)} meters` : "Calculating..."}
-              </Popup>
+        <MapSidebar />
+      </div>
+      <div>
+        <ReactMapGL
+          {...viewPort}
+          mapboxApiAccessToken={MAPBOX_TOKEN}
+          onViewportChange={(viewPort) => {
+            setViewPort(viewPort);
+          }}
+        >
+          {citiesData.cities.map((city) => (
+            <Marker
+              key={city.name}
+              latitude={city.latitude}
+              longitude={city.longitude}
+            >
+              <div>
+                {" "}
+                <MapMarker
+                  location={city.name}
+                  imageSrc={"/toronto.webp"}
+                  reviews={120}
+                />{" "}
+                {/* {city.name} */}
+              </div>
             </Marker>
-
-            {/* Transport Locations */}
-            {transportData.map((transport, index) => (
-              <Marker
-                key={index}
-                position={transport.location}
-                eventHandlers={{
-                  click: () => setSelectedTransport(transport), // Update selected transport
-                }}
-              >
-                <Popup>
-                  {transport.name} <br />
-                  Type: {transport.type}
-                </Popup>
-              </Marker>
-            ))}
-
-            {/* Draw route to closest transport */}
-            {closestTransport && (
-              <RoutingLine start={userLocation} end={closestTransport.location} />
-            )}
-            <RecenterAutomatically location={userLocation} />
-          </MapContainer>
-        </div>
-      )}
-
-      {/* Display `MapMarker` beside the map when a transport is selected */}
-      {selectedTransport && (
-        <div className="absolute top-10 right-10">
-          <MapMarker reviews={Math.floor(Math.random() * 100) + 1} location={selectedTransport.name} />
-        </div>
-      )}
+          ))}
+        </ReactMapGL>
+      </div>
     </div>
   );
-};
-
-// Component to draw route line
-const RoutingLine = ({ start, end }) => {
-  const map = useMap();
-  useEffect(() => {
-    if (start && end) {
-      L.Routing.control({
-        waypoints: [L.latLng(start), L.latLng(end)],
-        createMarker: () => null, // Disable default markers
-        lineOptions: {
-          styles: [{ color: "blue", weight: 4 }],
-        },
-        show: false, // Hide the default routing instructions
-      }).addTo(map);
-    }
-  }, [start, end, map]);
-  return null;
-};
-
-// Component to recenter map automatically
-const RecenterAutomatically = ({ location }) => {
-  const map = useMap();
-  useEffect(() => {
-    if (location) {
-      map.setView(location, 13);
-    }
-  }, [location, map]);
-  return null;
 };
 
 export default MapComponent;
