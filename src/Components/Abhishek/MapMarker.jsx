@@ -5,8 +5,8 @@ function MapMarker({ imageSrc, reviews, location }) {
   const profilePics = ["/profile1.png", "/profile2.png", "/profile3.png"]; // Profile images from public folder
 
   return (
-    <div className="flex justify-center items-center gap-3">
-      <div className="flex  gap-3 bg-[#19191a] w-[350px] p-3 rounded-2xl h-[100px] shadow-lg relative items-center">
+    <div className="flex justify-center items-center gap-3 p-0 m-0">
+      <div className="flex gap-3 bg-[#19191a] w-[350px] p-3 rounded-2xl h-[100px] shadow-lg relative items-center">
         {/* Image Section */}
         <div>
           <img
@@ -50,11 +50,6 @@ function MapMarker({ imageSrc, reviews, location }) {
             <p>Queen Park</p>
           </div>
         </div>
-
-        {/* Circular Location Marker */}
-      </div>
-      <div className=" h-20 w-20 bg-[#0a0a0a] rounded-full flex items-center justify-center shadow-md">
-        <img className="h-6 w-6" src="/location.png" alt="Location Marker" />
       </div>
     </div>
   );
